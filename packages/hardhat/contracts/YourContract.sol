@@ -1,87 +1,194 @@
-//SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0 <0.9.0;
+// SPDX-License-Identifier: MIT
+// Compatible with OpenZeppelin Contracts ^5.0.0
+pragma solidity 0.8.20;
 
-// Useful for debugging. Remove when deploying to a live network.
-import "hardhat/console.sol";
+/////////////
+///Imports///
+/////////////
 
-// Use openzeppelin to inherit battle-tested implementations (ERC20, ERC721, etc)
-// import "@openzeppelin/contracts/access/Ownable.sol";
+import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import { ERC721URIStorage } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
+import { AutomationCompatibleInterface } from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 
-/**
- * A smart contract that allows changing a state variable of the contract and tracking the changes
- * It also allows the owner to withdraw the Ether in the contract
- * @author BuidlGuidl
- */
-contract YourContract {
-	// State Variables
-	address public immutable owner;
-	string public greeting = "Building Unstoppable Apps!!!";
-	bool public premium = false;
-	uint256 public totalCounter = 0;
-	mapping(address => uint) public userGreetingCounter;
+/// @title Reservation NFT's
+/// @author @YanVictorSN
+/// @notice You can use this contract to mint and set NFT's metadata for reservations.
+contract Reservation is
+	ERC721,
+	ERC721URIStorage,
+	Ownable,
+	AutomationCompatibleInterface
+{
+	////////////////
+	///Data Types///
+	////////////////
 
-	// Events: a way to emit log statements from smart contract that can be listened to by external parties
-	event GreetingChange(
-		address indexed greetingSetter,
-		string newGreeting,
-		bool premium,
-		uint256 value
-	);
-
-	// Constructor: Called once on contract deployment
-	// Check packages/hardhat/deploy/00_deploy_your_contract.ts
-	constructor(address _owner) {
-		owner = _owner;
+	/// @notice This enum is used to define the status of a reservation
+	enum Status {
+		Reserved,
+		CheckIn,
+		Canceled
 	}
 
-	// Modifier: used to define a set of rules that must be met before or after a function is executed
-	// Check the withdraw() function
-	modifier isOwner() {
-		// msg.sender: predefined variable that represents address of the account that called the current function
-		require(msg.sender == owner, "Not the Owner");
-		_;
+	/// @notice This struct is used to define an reservation ID and status for an reservation
+	struct ReservationData {
+		uint256 reservationId;
+		uint256 reservationTimestamp;
+		Status status;
 	}
 
-	/**
-	 * Function that allows anyone to change the state variable "greeting" of the contract and increase the counters
-	 *
-	 * @param _newGreeting (string memory) - new greeting to save on the contract
-	 */
-	function setGreeting(string memory _newGreeting) public payable {
-		// Print data to the hardhat chain console. Remove when deploying to a live network.
-		console.log(
-			"Setting new greeting '%s' from %s",
-			_newGreeting,
-			msg.sender
+	// /// @notice This struct is used to define an reservation ID and status for an reservation
+	// struct ReservationByDay {
+	// 	uint256 reservationId;
+	// 	uint256 reservationTimestamp;
+	// 	Status status;
+	// }
+
+	///////////////
+	///Variables///
+	///////////////
+
+	using Counters for Counters.Counter;
+
+	Counters.Counter private tokenIdCounter;
+
+	string[] private IpfsImage = [
+		"https://bafybeiazphqjm6gaplxtgxptjyhk3qau2w5vg2sijwpijtq6gtmkikhzxe.ipfs.w3s.link/RestaurantReservation.json",
+		"https://bafybeiafomlk5ebetu4dqjmxz2qp2xze6xcgir3v3nd2xlz3d2hjce2xcu.ipfs.w3s.link/RestauranReservationCheckedIn.json",
+		"https://bafybeiab3idohdokghdzmjapoyee3haoylhiuaekpf6s4gvpm6dtxioanq.ipfs.w3s.link/RestaurantReservantionCanceled.json"
+	];
+
+	mapping(address userData => ReservationData[]) private reservationToken;
+	mapping(uint256 => ReservationData[]) private reservationsByDay;
+
+	constructor() ERC721("Reserve", "RSV") Ownable() {}
+
+	///////////////
+	///Functions///
+	///////////////
+
+	function checkUpkeep(
+		bytes calldata checkData
+	) external override returns (bool upkeepNeeded, bytes memory performData) {}
+
+	function performUpkeep(bytes calldata performData) external override {}
+
+	/// @notice This function will mint a NFT, add an reservation on the array and set the metadata.
+	/// @param to The address that will receive the NFT
+	//@param tokenMetadata The metadata of the NFT
+	function safeMint(
+		address to,
+		uint256 reservationTimestamp
+	)
+		public
+		//string memory tokenMetadata
+		onlyOwner
+	{
+		uint256 tokenId = tokenIdCounter.current();
+		tokenIdCounter.increment();
+		addReservation(to, reservationTimestamp, tokenId);
+		_safeMint(to, tokenId);
+		_setTokenURI(tokenId, IpfsImage[0]);
+	}
+
+	/// @notice This function get the metadata of a NFT
+	/// @param tokenId The identifier of the NFT
+	/// @return The metadata of the NFT
+	function tokenURI(
+		uint256 tokenId
+	) public view override(ERC721, ERC721URIStorage) returns (string memory) {
+		return super.tokenURI(tokenId);
+	}
+
+	/// @notice This function is used to check if a contract supports an interface
+	/// @param interfaceId The interface identifier
+	/// @return True if the interface is supported, false otherwise
+	function supportsInterface(
+		bytes4 interfaceId
+	) public view override(ERC721, ERC721URIStorage) returns (bool) {
+		return super.supportsInterface(interfaceId);
+	}
+
+	/// @notice This function is used to check the daily reservations and modifies the status of each one
+	/// @param tokenId The identifier of the NFT
+	/// @param addressCheckedIn The address to be checked in
+	function checkDailyReservation(
+		uint256 tokenId,
+		address addressCheckedIn
+	)
+		public
+		//string memory newTokenMetadata
+		onlyOwner
+	{
+		require(
+			reservationToken[addressCheckedIn].length > 0,
+			"User don't have any reservation"
+		);
+		if (
+			reservationToken[addressCheckedIn][tokenId].reservationTimestamp >
+			block.timestamp &&
+			reservationToken[addressCheckedIn][tokenId].status ==
+			Status.Reserved
+		) {
+			reservationToken[addressCheckedIn][tokenId].status = Status
+				.Canceled;
+			_setTokenURI(tokenId, IpfsImage[2]);
+			return;
+		} else {
+			reservationToken[addressCheckedIn][tokenId].status = Status.CheckIn;
+			_setTokenURI(tokenId, IpfsImage[1]);
+		}
+	}
+
+	/// @notice This function is used to get the data of a token
+	/// @param _userAddress The address of the user
+	function getTokenData(
+		address _userAddress
+	) public view returns (ReservationData[] memory) {
+		return reservationToken[_userAddress];
+	}
+
+	/// @notice This function is used to burn a NFT
+	/// @param tokenId The identifier of the NFT
+	function _burn(
+		uint256 tokenId
+	) internal override(ERC721, ERC721URIStorage) {
+		super._burn(tokenId);
+	}
+
+	/// @notice This function add an reservation to the array and set the status to Reserved
+	/// @param userAddress The address of the user that purschased the reservation
+	/// @param reservationTimestamp The timestamp of the reservation
+	/// @param reservationId The identifier of the reservation
+	function addReservation(
+		address userAddress,
+		uint256 reservationTimestamp,
+		uint256 reservationId
+	) internal {
+		ReservationData memory newReservation = ReservationData(
+			reservationId,
+			reservationTimestamp,
+			Status.Reserved
 		);
 
-		// Change state variables
-		greeting = _newGreeting;
-		totalCounter += 1;
-		userGreetingCounter[msg.sender] += 1;
-
-		// msg.value: built-in global variable that represents the amount of ether sent with the transaction
-		if (msg.value > 0) {
-			premium = true;
-		} else {
-			premium = false;
-		}
-
-		// emit: keyword used to trigger an event
-		emit GreetingChange(msg.sender, _newGreeting, msg.value > 0, msg.value);
+		reservationToken[userAddress].push(newReservation);
+		uint256 reservationDay = getStartOfDay(reservationTimestamp);
+		reservationsByDay[reservationDay].push(newReservation);
 	}
 
-	/**
-	 * Function that allows the owner to withdraw all the Ether in the contract
-	 * The function can only be called by the owner of the contract as defined by the isOwner modifier
-	 */
-	function withdraw() public isOwner {
-		(bool success, ) = owner.call{ value: address(this).balance }("");
-		require(success, "Failed to send Ether");
+	/// @notice  This function is used to get the daily reservations
+	/// @param _dayTimestamp The timestamp of the day
+	function getReservationsByDay(
+		uint256 _dayTimestamp
+	) public view returns (ReservationData[] memory) {
+		return reservationsByDay[_dayTimestamp];
 	}
 
-	/**
-	 * Function that allows the contract to receive ETH
-	 */
-	receive() external payable {}
+	/// @notice This function is used to get the start of the day
+	/// @param _timestamp The timestamp of the reservation
+	function getStartOfDay(uint256 _timestamp) internal pure returns (uint256) {
+		return _timestamp - (_timestamp % 86400);
+	}
 }
