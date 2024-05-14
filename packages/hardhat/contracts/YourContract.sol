@@ -41,9 +41,9 @@ contract Reservation is
 
 	/// @notice This struct is used to define an reservation ID and status for an reservation
 	struct ReservationByDay {
-		uint256 userAddress;
-		uint256 reservationId;
 		uint256 reservationTimestamp;
+		address userAddress;
+		uint256 reservationId;
 	}
 
 	///////////////
@@ -67,7 +67,7 @@ contract Reservation is
 	///Events///
 	////////////
 
-	event ReservationData(
+	event ReservationDataAdded(
 		address indexed to,
 		uint256 reservationTimestamp,
 		uint256 tokenId
@@ -198,7 +198,7 @@ contract Reservation is
 		super._burn(tokenId);
 	}
 
-	/// @notice This function add an reservation to the array and set the status to Reserved
+	/// @notice This function add an reservation to the ReservationData, set the status to Reserved and add the reservation to the daily reservations
 	/// @param userAddress The address of the user that purschased the reservation
 	/// @param reservationTimestamp The timestamp of the reservation
 	/// @param reservationId The identifier of the reservation
@@ -215,15 +215,26 @@ contract Reservation is
 
 		reservationToken[userAddress].push(newReservation);
 		uint256 reservationDay = getStartOfDay(reservationTimestamp);
-		reservationsByDay[reservationDay].push(newReservation);
-		emit ReservationData(to, reservationTimestamp, tokenId);
+
+		ReservationByDay memory newReservationDay = ReservationByDay(
+			reservationTimestamp,
+			userAddress,
+			reservationId
+		);
+
+		reservationsByDay[reservationDay].push(newReservationDay);
+		emit ReservationDataAdded(
+			userAddress,
+			reservationTimestamp,
+			reservationId
+		);
 	}
 
 	/// @notice  This function is used to get the daily reservations
 	/// @param _dayTimestamp The timestamp of the day
 	function getReservationsByDay(
 		uint256 _dayTimestamp
-	) public view returns (ReservationData[] memory) {
+	) public view returns (ReservationByDay[] memory) {
 		return reservationsByDay[_dayTimestamp];
 	}
 
