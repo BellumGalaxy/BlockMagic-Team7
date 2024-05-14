@@ -41,7 +41,7 @@ contract Reservation is
 
 	/// @notice This struct is used to define an reservation ID and status for an reservation
 	struct ReservationByDay {
-		uint256 userAddress
+		uint256 userAddress;
 		uint256 reservationId;
 		uint256 reservationTimestamp;
 	}
@@ -64,8 +64,8 @@ contract Reservation is
 	mapping(uint256 => ReservationByDay[]) private reservationsByDay;
 
 	////////////
-    ///Events///
-    ////////////
+	///Events///
+	////////////
 
 	event ReservationData(
 		address indexed to,
@@ -88,9 +88,9 @@ contract Reservation is
 	);
 
 	/////////////////
-    ///Constructor///
-    /////////////////
-	
+	///Constructor///
+	/////////////////
+
 	constructor() ERC721("Reserve", "RSV") Ownable() {}
 
 	///////////////
@@ -159,17 +159,26 @@ contract Reservation is
 			block.timestamp &&
 			reservationToken[addressCheckedIn][tokenId].status ==
 			Status.Reserved
-			
 		) {
 			reservationToken[addressCheckedIn][tokenId].status = Status
 				.Canceled;
 			_setTokenURI(tokenId, IpfsImage[2]);
-			emit ReservationCanceled(addressCheckedIn, tokenId, Status.Canceled, block.timestamp);
+			emit ReservationCanceled(
+				addressCheckedIn,
+				tokenId,
+				Status.Canceled,
+				block.timestamp
+			);
 			return;
 		} else {
 			reservationToken[addressCheckedIn][tokenId].status = Status.CheckIn;
 			_setTokenURI(tokenId, IpfsImage[1]);
-			emit ReservationChecked(addressCheckedIn, tokenId, Status.CheckIn, block.timestamp);
+			emit ReservationChecked(
+				addressCheckedIn,
+				tokenId,
+				Status.CheckIn,
+				block.timestamp
+			);
 		}
 	}
 
