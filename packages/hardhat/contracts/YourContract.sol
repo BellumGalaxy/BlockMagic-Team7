@@ -39,12 +39,12 @@ contract Reservation is
 		Status status;
 	}
 
-	// /// @notice This struct is used to define an reservation ID and status for an reservation
-	// struct ReservationByDay {
-	// 	uint256 reservationId;
-	// 	uint256 reservationTimestamp;
-	// 	Status status;
-	// }
+	/// @notice This struct is used to define an reservation ID and status for an reservation
+	struct ReservationByDay {
+		uint256 userAddress
+		uint256 reservationId;
+		uint256 reservationTimestamp;
+	}
 
 	///////////////
 	///Variables///
@@ -61,8 +61,36 @@ contract Reservation is
 	];
 
 	mapping(address userData => ReservationData[]) private reservationToken;
-	mapping(uint256 => ReservationData[]) private reservationsByDay;
+	mapping(uint256 => ReservationByDay[]) private reservationsByDay;
 
+	////////////
+    ///Events///
+    ////////////
+
+	event ReservationData(
+		address indexed to,
+		uint256 reservationTimestamp,
+		uint256 tokenId
+	);
+
+	event ReservationChecked(
+		address indexed to,
+		uint256 tokenId,
+		Status status,
+		uint256 timestamp
+	);
+
+	event ReservationCanceled(
+		address indexed to,
+		uint256 tokenId,
+		Status status,
+		uint256 timestamp
+	);
+
+	/////////////////
+    ///Constructor///
+    /////////////////
+	
 	constructor() ERC721("Reserve", "RSV") Ownable() {}
 
 	///////////////
@@ -131,14 +159,17 @@ contract Reservation is
 			block.timestamp &&
 			reservationToken[addressCheckedIn][tokenId].status ==
 			Status.Reserved
+			
 		) {
 			reservationToken[addressCheckedIn][tokenId].status = Status
 				.Canceled;
 			_setTokenURI(tokenId, IpfsImage[2]);
+			emit ReservationCanceled(addressCheckedIn, tokenId, Status.Canceled, block.timestamp);
 			return;
 		} else {
 			reservationToken[addressCheckedIn][tokenId].status = Status.CheckIn;
 			_setTokenURI(tokenId, IpfsImage[1]);
+			emit ReservationChecked(addressCheckedIn, tokenId, Status.CheckIn, block.timestamp);
 		}
 	}
 
@@ -176,6 +207,7 @@ contract Reservation is
 		reservationToken[userAddress].push(newReservation);
 		uint256 reservationDay = getStartOfDay(reservationTimestamp);
 		reservationsByDay[reservationDay].push(newReservation);
+		emit ReservationData(to, reservationTimestamp, tokenId);
 	}
 
 	/// @notice  This function is used to get the daily reservations
