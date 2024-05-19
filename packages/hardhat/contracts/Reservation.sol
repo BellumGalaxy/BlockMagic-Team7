@@ -10,23 +10,18 @@ import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { ERC721URIStorage } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
-import { AutomationCompatibleInterface } from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 
 /// @title Reservation NFT's
 /// @author @YanVictorSN
 /// @notice You can use this contract to mint and set NFT's metadata for reservations.
-contract Reservation is
-	ERC721,
-	ERC721URIStorage,
-	Ownable,
-	AutomationCompatibleInterface
-{
+contract Reservation is ERC721, ERC721URIStorage, Ownable {
 	////////////////
 	///Data Types///
 	////////////////
 
 	/// @notice This enum is used to define the status of a reservation
 	enum Status {
+		Created,
 		Reserved,
 		CheckIn,
 		Canceled
@@ -36,6 +31,9 @@ contract Reservation is
 	struct ReservationData {
 		uint256 reservationId;
 		uint256 reservationTimestamp;
+		uint256 toleranceTime;
+		uint256 reservationValue;
+		bool reservationPayment;
 		Status status;
 	}
 
@@ -60,7 +58,7 @@ contract Reservation is
 		"https://bafybeiab3idohdokghdzmjapoyee3haoylhiuaekpf6s4gvpm6dtxioanq.ipfs.w3s.link/RestaurantReservantionCanceled.json"
 	];
 
-	mapping(address userData => ReservationData[]) private reservationToken;
+	mapping(address => ReservationData[]) private reservationToken;
 	mapping(uint256 => ReservationByDay[]) private reservationsByDay;
 
 	////////////
@@ -68,9 +66,11 @@ contract Reservation is
 	////////////
 
 	event ReservationDataAdded(
+		uint256 tokenId,
 		address indexed to,
 		uint256 reservationTimestamp,
-		uint256 tokenId
+		uint256 toleranceTime,
+		uint256 reservationValue
 	);
 
 	event ReservationChecked(
@@ -97,27 +97,81 @@ contract Reservation is
 	///Functions///
 	///////////////
 
-	function checkUpkeep(
-		bytes calldata checkData
-	) external override returns (bool upkeepNeeded, bytes memory performData) {}
+	//////////////
+	///External///
+	//////////////
 
-	function performUpkeep(bytes calldata performData) external override {}
+	/// @notice This function is used to check all daily reservations
+	function checkAllDailyReservation() external {
+		if (
+			reservationsByDay[getStartOfDayTimestamp(block.timestamp)].length >
+			0
+		) {
+			for (
+				uint256 i = 0;
+				i <
+				reservationsByDay[getStartOfDayTimestamp(block.timestamp)]
+					.length;
+				++i
+			) {
+				ReservationByDay memory reservation = reservationsByDay[
+					getStartOfDayTimestamp(block.timestamp)
+				][i];
+				checkDailyReservation(
+					reservation.reservationId,
+					reservation.userAddress
+				);
+			}
+		}
+	}
+
+	////////////
+	///Public///
+	////////////
 
 	/// @notice This function will mint a NFT, add an reservation on the array and set the metadata.
-	/// @param to The address that will receive the NFT
+	/// @param minterAddress The address that will receive the NFT
 	//@param tokenMetadata The metadata of the NFT
+	/// @param reservationTimestamp The timestamp of the reservation
+	/// @param reservationToleranceTime The tolerance time of the reservation
+	/// @param reservationValue The value of the reservation
 	function safeMint(
-		address to,
-		uint256 reservationTimestamp
+		address minterAddress,
+		uint256 reservationTimestamp,
+		uint256 reservationToleranceTime,
+		uint256 reservationValue
 	)
 		public
 		//string memory tokenMetadata
 		onlyOwner
 	{
+		require(
+			reservationTimestamp > block.timestamp,
+			"Reservation timestamp must be in the future"
+		);
+		require(
+			reservationToleranceTime > 0,
+			"Tolerance time must be greater than 0"
+		);
+		require(
+			reservationValue > 0,
+			"Reservation value must be greater than 0"
+		);
+		require(minterAddress != address(0), "Insert a valid address");
 		uint256 tokenId = tokenIdCounter.current();
 		tokenIdCounter.increment();
-		addReservation(to, reservationTimestamp, tokenId);
-		_safeMint(to, tokenId);
+		uint256 finalToleranceTime = reservationTimestamp +
+			reservationToleranceTime;
+		//This line is only for test propuses, it will be removed when we set the marketplace
+		//reservationToken[minterAddress][tokenId].status = Status.Reserved;
+		_addReservation(
+			tokenId,
+			minterAddress,
+			reservationTimestamp,
+			finalToleranceTime,
+			reservationValue
+		);
+		_safeMint(minterAddress, tokenId);
 		_setTokenURI(tokenId, IpfsImage[0]);
 	}
 
@@ -141,40 +195,43 @@ contract Reservation is
 
 	/// @notice This function is used to check the daily reservations and modifies the status of each one
 	/// @param tokenId The identifier of the NFT
-	/// @param addressCheckedIn The address to be checked in
+	/// @param userAddress The address to be checked
 	function checkDailyReservation(
 		uint256 tokenId,
-		address addressCheckedIn
+		address userAddress
 	)
 		public
 		//string memory newTokenMetadata
 		onlyOwner
 	{
 		require(
-			reservationToken[addressCheckedIn].length > 0,
+			reservationToken[userAddress].length > 0,
 			"User don't have any reservation"
 		);
-		if (
-			reservationToken[addressCheckedIn][tokenId].reservationTimestamp >
-			block.timestamp &&
-			reservationToken[addressCheckedIn][tokenId].status ==
-			Status.Reserved
-		) {
-			reservationToken[addressCheckedIn][tokenId].status = Status
-				.Canceled;
+
+		ReservationData storage _reservation = reservationToken[userAddress][
+			tokenId
+		];
+
+		// require(
+		// 	_reservation.status == Status.Created,
+		// 	"Token is not reserved yet"
+		// );
+		if (_reservation.toleranceTime < block.timestamp) {
+			_reservation.status = Status.Canceled;
 			_setTokenURI(tokenId, IpfsImage[2]);
 			emit ReservationCanceled(
-				addressCheckedIn,
+				userAddress,
 				tokenId,
 				Status.Canceled,
 				block.timestamp
 			);
 			return;
 		} else {
-			reservationToken[addressCheckedIn][tokenId].status = Status.CheckIn;
+			_reservation.status = Status.CheckIn;
 			_setTokenURI(tokenId, IpfsImage[1]);
 			emit ReservationChecked(
-				addressCheckedIn,
+				userAddress,
 				tokenId,
 				Status.CheckIn,
 				block.timestamp
@@ -190,6 +247,10 @@ contract Reservation is
 		return reservationToken[_userAddress];
 	}
 
+	//////////////
+	///Internal///
+	//////////////
+
 	/// @notice This function is used to burn a NFT
 	/// @param tokenId The identifier of the NFT
 	function _burn(
@@ -199,22 +260,29 @@ contract Reservation is
 	}
 
 	/// @notice This function add an reservation to the ReservationData, set the status to Reserved and add the reservation to the daily reservations
+	/// @param reservationId The identifier of the reservation
 	/// @param userAddress The address of the user that purschased the reservation
 	/// @param reservationTimestamp The timestamp of the reservation
-	/// @param reservationId The identifier of the reservation
-	function addReservation(
+	/// @param toleranceTime The tolerance time of the reservation
+	/// @param reservationValue The value of the reservation
+	function _addReservation(
+		uint256 reservationId,
 		address userAddress,
 		uint256 reservationTimestamp,
-		uint256 reservationId
+		uint256 toleranceTime,
+		uint256 reservationValue
 	) internal {
 		ReservationData memory newReservation = ReservationData(
 			reservationId,
 			reservationTimestamp,
-			Status.Reserved
+			toleranceTime,
+			reservationValue,
+			false,
+			Status.Created
 		);
 
 		reservationToken[userAddress].push(newReservation);
-		uint256 reservationDay = getStartOfDay(reservationTimestamp);
+		uint256 reservationDay = getStartOfDayTimestamp(reservationTimestamp);
 
 		ReservationByDay memory newReservationDay = ReservationByDay(
 			reservationTimestamp,
@@ -224,23 +292,79 @@ contract Reservation is
 
 		reservationsByDay[reservationDay].push(newReservationDay);
 		emit ReservationDataAdded(
+			reservationId,
 			userAddress,
 			reservationTimestamp,
-			reservationId
+			toleranceTime,
+			reservationValue
 		);
+	}
+
+	/// @notice This function is used to get the timestamp of start of the day
+	/// @param _reservationTimestamp The timestamp of the reservation
+	/// @return The timestamp of start of the day
+	function getStartOfDayTimestamp(
+		uint256 _reservationTimestamp
+	) internal pure returns (uint256) {
+		return _reservationTimestamp - (_reservationTimestamp % 86400);
+	}
+
+	///@notice This function is used to deposit the reservation value in the contract
+	///@param reservationId The identifier of the reservation
+	///@param userAddress The address of the user that rented the reservation
+	function depositReservationValue(
+		uint256 reservationId,
+		address userAddress
+	) public payable {
+		ReservationData storage userReservation = reservationToken[msg.sender][
+			reservationId
+		];
+		require(
+			msg.sender == userAddress,
+			"Only the reservation holder can deposit"
+		);
+		require(
+			msg.value == userReservation.reservationValue,
+			"Deposit value must be equal to reservation value"
+		);
+		require(
+			!userReservation.reservationPayment,
+			"Reservation already paid"
+		);
+		userReservation.reservationPayment = true;
+	}
+
+	///@notice This function is used to refund the reservation value in the contract
+	///@param reservationId The identifier of the reservation
+	///@param userAddress The address of the user that rented the reservation
+	function refundForNotCheckIn(
+		uint256 reservationId,
+		address userAddress
+	) public {
+		ReservationData storage userReservation = reservationToken[userAddress][
+			reservationId
+		];
+		require(
+			address(this).balance >= userReservation.reservationValue,
+			"Insufficient balance"
+		);
+		require(
+			userReservation.status == Status.Canceled,
+			"Reservation must be canceled"
+		);
+		require(
+			userReservation.reservationPayment,
+			"Reservation must be paid to refund"
+		);
+		payable(address(this)).transfer(userReservation.reservationValue);
 	}
 
 	/// @notice  This function is used to get the daily reservations
 	/// @param _dayTimestamp The timestamp of the day
+	/// @return The daily reservations
 	function getReservationsByDay(
 		uint256 _dayTimestamp
 	) public view returns (ReservationByDay[] memory) {
 		return reservationsByDay[_dayTimestamp];
-	}
-
-	/// @notice This function is used to get the start of the day
-	/// @param _timestamp The timestamp of the reservation
-	function getStartOfDay(uint256 _timestamp) internal pure returns (uint256) {
-		return _timestamp - (_timestamp % 86400);
 	}
 }
