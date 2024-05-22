@@ -5,8 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bars3Icon, BugAntIcon } from "@heroicons/react/24/outline";
+import { LoginComponent } from "~~/components/Login";
 import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { useOutsideClick } from "~~/hooks/scaffold-eth";
+import { useGlobalState } from "~~/services/store/store";
 
 type HeaderMenuLink = {
   label: string;
@@ -58,6 +60,8 @@ export const HeaderMenuLinks = () => {
 export const Header = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const burgerMenuRef = useRef<HTMLDivElement>(null);
+  const userConnected = useGlobalState(state => state.isConnecting);
+
   useOutsideClick(
     burgerMenuRef,
     useCallback(() => setIsDrawerOpen(false), []),
@@ -98,12 +102,13 @@ export const Header = () => {
           </div>
         </Link>
         <ul className="hidden lg:flex lg:flex-nowrap menu menu-horizontal px-1 gap-2">
+          <LoginComponent />
           <HeaderMenuLinks />
         </ul>
       </div>
       <div className="navbar-end flex-grow mr-4">
         <RainbowKitCustomConnectButton />
-        <FaucetButton />
+        {userConnected ? <FaucetButton /> : null}
       </div>
     </div>
   );
