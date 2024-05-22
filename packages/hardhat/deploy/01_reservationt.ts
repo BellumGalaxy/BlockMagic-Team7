@@ -8,7 +8,7 @@ import { Contract } from "ethers";
  *
  * @param hre HardhatRuntimeEnvironment object.
  */
-const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+const depoyReservation: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   /*
     On localhost, the deployer account is the one that comes with Hardhat, which is already funded.
 
@@ -25,19 +25,37 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   await deploy("Reservation", {
     from: deployer,
     // Contract constructor arguments
-    // args: [deployer],
+    args: [],
+    log: true,
+    // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
+    // automatically mining the contract deployment transaction. There is no effect on live networks.
+    autoMine: true,
+  });
+  console.log(deployer);
+
+  // Get the deployed contract to interact with it after deploying.
+  const Reservation = await hre.ethers.getContract<Contract>("Reservation", deployer);
+  const ReservationAddress = await Reservation.getAddress();
+  console.log("👋 Initial ReservationAddress:", ReservationAddress);
+
+  await deploy("ReservationMarketplace", {
+    from: deployer,
+    // Contract constructor arguments
+    args: [ReservationAddress],
     log: true,
     // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
     // automatically mining the contract deployment transaction. There is no effect on live networks.
     autoMine: true,
   });
 
-  const yourContract = await hre.ethers.getContract<Contract>("Reservation", deployer);
-  console.log(await yourContract.transferOwnership("0xd081187F3C52CcB4Af7De92cee72F9eA2987c36e"));
+  // Get the deployed contract to interact with it after deploying.
+  const ReservationMarketplace = await hre.ethers.getContract<Contract>("ReservationMarketplace", deployer);
+  const ReservationMarketplaceAddress = await ReservationMarketplace.getAddress();
+  console.log("👋 Initial ReservationMarketplaceAddress:", ReservationMarketplaceAddress);
 };
 
-export default deployYourContract;
+export default depoyReservation;
 
 // Tags are useful if you have multiple deploy files and only want to run one of them.
 // e.g. yarn deploy --tags YourContract
-deployYourContract.tags = ["YourContract"];
+depoyReservation.tags = ["YourContract"];

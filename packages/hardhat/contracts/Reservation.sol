@@ -367,4 +367,10 @@ contract Reservation is ERC721, ERC721URIStorage, Ownable {
 	) public view returns (ReservationByDay[] memory) {
 		return reservationsByDay[_dayTimestamp];
 	}
+
+	function getDateMaxToTrade(uint256 _tokenId) public view returns (uint256) {
+		return
+			reservationToken[msg.sender][_tokenId].reservationTimestamp +
+			30 days;
+	}
 }
