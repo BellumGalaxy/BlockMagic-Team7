@@ -11,10 +11,11 @@ import { ERC721URIStorage } from "@openzeppelin/contracts/token/ERC721/extension
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
 
+
 /// @title Reservation NFT's
 /// @author @YanVictorSN
 /// @notice You can use this contract to mint and set NFT's metadata for reservations.
-contract Reservation is ERC721, ERC721URIStorage, Ownable {
+contract Reservation is ERC721, ERC721URIStorage, Ownable,  {
 	////////////////
 	///Data Types///
 	////////////////
@@ -33,7 +34,7 @@ contract Reservation is ERC721, ERC721URIStorage, Ownable {
 		uint256 reservationTimestamp;
 		uint256 toleranceTime;
 		uint256 reservationValue;
-		bool reservationPayment;
+		bool reservationPayment; // automation verify this field to refund
 		Status status;
 	}
 
@@ -164,6 +165,7 @@ contract Reservation is ERC721, ERC721URIStorage, Ownable {
 			reservationToleranceTime;
 		//This line is only for test propuses, it will be removed when we set the marketplace
 		//reservationToken[minterAddress][tokenId].status = Status.Reserved;
+
 		_addReservation(
 			tokenId,
 			minterAddress,

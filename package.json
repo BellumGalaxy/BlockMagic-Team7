@@ -4,6 +4,7 @@
   "private": true,
   "workspaces": {
     "packages": [
+      "packages/backend",
       "packages/hardhat",
       "packages/nextjs"
     ]
@@ -33,7 +34,8 @@
     "postinstall": "husky install",
     "precommit": "lint-staged",
     "vercel": "yarn workspace @se-2/nextjs vercel",
-    "vercel:yolo": "yarn workspace @se-2/nextjs vercel:yolo"
+    "vercel:yolo": "yarn workspace @se-2/nextjs vercel:yolo",
+    "start:backend": "yarn workspace @se-2/backend ./functions npm run start serve"
   },
   "packageManager": "yarn@3.2.3",
   "devDependencies": {
@@ -42,5 +44,9 @@
   },
   "engines": {
     "node": ">=18.17.0"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.1.1",
+    "firebase-tools": "^13.10.0"
   }
 }
