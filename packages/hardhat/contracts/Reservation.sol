@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Compatible with OpenZeppelin Contracts ^5.0.0
 pragma solidity 0.8.20;
+import "hardhat/console.sol";
 
 /////////////
 ///Imports///
@@ -22,7 +23,6 @@ contract Reservation is ERC721, ERC721URIStorage, Ownable,  {
 
 	/// @notice This enum is used to define the status of a reservation
 	enum Status {
-		Created,
 		Reserved,
 		CheckIn,
 		Canceled
@@ -103,7 +103,7 @@ contract Reservation is ERC721, ERC721URIStorage, Ownable,  {
 	//////////////
 
 	/// @notice This function is used to check all daily reservations
-	function checkAllDailyReservation() external {
+	function checkAllDailyReservation() external onlyOwner {
 		if (
 			reservationsByDay[getStartOfDayTimestamp(block.timestamp)].length >
 			0
@@ -140,12 +140,8 @@ contract Reservation is ERC721, ERC721URIStorage, Ownable,  {
 		address minterAddress,
 		uint256 reservationTimestamp,
 		uint256 reservationToleranceTime,
-		uint256 reservationValue
-	)
-		public
-		//string memory tokenMetadata
-		onlyOwner
-	{
+		uint256 reservationValue //string memory tokenMetadata //onlyOwner
+	) public {
 		require(
 			reservationTimestamp > block.timestamp,
 			"Reservation timestamp must be in the future"
@@ -186,6 +182,18 @@ contract Reservation is ERC721, ERC721URIStorage, Ownable,  {
 		return super.tokenURI(tokenId);
 	}
 
+	function tokenURIs(
+		uint256[] memory tokenIds
+	) public view returns (string[] memory) {
+		string[] memory uris = new string[](tokenIds.length);
+
+		for (uint256 i = 0; i < tokenIds.length; i++) {
+			uris[i] = tokenURI(tokenIds[i]);
+		}
+
+		return uris;
+	}
+
 	/// @notice This function is used to check if a contract supports an interface
 	/// @param interfaceId The interface identifier
 	/// @return True if the interface is supported, false otherwise
@@ -200,12 +208,8 @@ contract Reservation is ERC721, ERC721URIStorage, Ownable,  {
 	/// @param userAddress The address to be checked
 	function checkDailyReservation(
 		uint256 tokenId,
-		address userAddress
-	)
-		public
-		//string memory newTokenMetadata
-		onlyOwner
-	{
+		address userAddress //string memory newTokenMetadata //onlyOwner
+	) public {
 		require(
 			reservationToken[userAddress].length > 0,
 			"User don't have any reservation"
@@ -214,31 +218,43 @@ contract Reservation is ERC721, ERC721URIStorage, Ownable,  {
 		ReservationData storage _reservation = reservationToken[userAddress][
 			tokenId
 		];
-
-		// require(
-		// 	_reservation.status == Status.Created,
-		// 	"Token is not reserved yet"
-		// );
 		if (_reservation.toleranceTime < block.timestamp) {
-			_reservation.status = Status.Canceled;
-			_setTokenURI(tokenId, IpfsImage[2]);
-			emit ReservationCanceled(
-				userAddress,
-				tokenId,
-				Status.Canceled,
-				block.timestamp
-			);
+			_cancelReservation(_reservation, tokenId, userAddress);
 			return;
 		} else {
-			_reservation.status = Status.CheckIn;
-			_setTokenURI(tokenId, IpfsImage[1]);
-			emit ReservationChecked(
-				userAddress,
-				tokenId,
-				Status.CheckIn,
-				block.timestamp
-			);
+			_confirmCheckIn(_reservation, tokenId, userAddress);
 		}
+	}
+
+	function _cancelReservation(
+		ReservationData storage _reservation,
+		uint256 tokenId,
+		address userAddress
+	) internal {
+		_reservation.status = Status.Canceled;
+		_setTokenURI(tokenId, IpfsImage[2]);
+		///refundForNotCheckIn(tokenId, userAddress);
+		emit ReservationCanceled(
+			userAddress,
+			tokenId,
+			Status.Canceled,
+			block.timestamp
+		);
+	}
+
+	function _confirmCheckIn(
+		ReservationData storage _reservation,
+		uint256 tokenId,
+		address userAddress
+	) internal {
+		_reservation.status = Status.CheckIn;
+		_setTokenURI(tokenId, IpfsImage[1]);
+		emit ReservationChecked(
+			userAddress,
+			tokenId,
+			Status.CheckIn,
+			block.timestamp
+		);
 	}
 
 	/// @notice This function is used to get the data of a token
@@ -280,7 +296,7 @@ contract Reservation is ERC721, ERC721URIStorage, Ownable,  {
 			toleranceTime,
 			reservationValue,
 			false,
-			Status.Created
+			Status.Reserved
 		);
 
 		reservationToken[userAddress].push(newReservation);
@@ -307,7 +323,7 @@ contract Reservation is ERC721, ERC721URIStorage, Ownable,  {
 	/// @return The timestamp of start of the day
 	function getStartOfDayTimestamp(
 		uint256 _reservationTimestamp
-	) internal pure returns (uint256) {
+	) public pure returns (uint256) {
 		return _reservationTimestamp - (_reservationTimestamp % 86400);
 	}
 
@@ -370,9 +386,32 @@ contract Reservation is ERC721, ERC721URIStorage, Ownable,  {
 		return reservationsByDay[_dayTimestamp];
 	}
 
+	function getReservations(
+		address _userAddress
+	) public view returns (ReservationData[] memory) {
+		return reservationToken[_userAddress];
+	}
+
 	function getDateMaxToTrade(uint256 _tokenId) public view returns (uint256) {
 		return
 			reservationToken[msg.sender][_tokenId].reservationTimestamp +
 			30 days;
+	}
+
+	/// @notice This function returns an array of reservation tokens for an array of addresses
+	/// @param addresses The array of addresses to query
+	/// @return An array of reservation tokens corresponding to the addresses
+	function getReservationTokensByAddresses(
+		address[] calldata addresses
+	) public view returns (ReservationData[][] memory) {
+		ReservationData[][] memory reservations = new ReservationData[][](
+			addresses.length
+		);
+
+		for (uint256 i = 0; i < addresses.length; i++) {
+			reservations[i] = reservationToken[addresses[i]];
+		}
+
+		return reservations;
 	}
 }
