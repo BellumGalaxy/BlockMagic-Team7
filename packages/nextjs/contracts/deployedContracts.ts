@@ -360,6 +360,108 @@ const deployedContracts = {
         {
           inputs: [
             {
+              internalType: "address[]",
+              name: "addresses",
+              type: "address[]",
+            },
+          ],
+          name: "getReservationTokensByAddresses",
+          outputs: [
+            {
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "reservationId",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "reservationTimestamp",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "toleranceTime",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "reservationValue",
+                  type: "uint256",
+                },
+                {
+                  internalType: "bool",
+                  name: "reservationPayment",
+                  type: "bool",
+                },
+                {
+                  internalType: "enum Reservation.Status",
+                  name: "status",
+                  type: "uint8",
+                },
+              ],
+              internalType: "struct Reservation.ReservationData[][]",
+              name: "",
+              type: "tuple[][]",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_userAddress",
+              type: "address",
+            },
+          ],
+          name: "getReservations",
+          outputs: [
+            {
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "reservationId",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "reservationTimestamp",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "toleranceTime",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "reservationValue",
+                  type: "uint256",
+                },
+                {
+                  internalType: "bool",
+                  name: "reservationPayment",
+                  type: "bool",
+                },
+                {
+                  internalType: "enum Reservation.Status",
+                  name: "status",
+                  type: "uint8",
+                },
+              ],
+              internalType: "struct Reservation.ReservationData[]",
+              name: "",
+              type: "tuple[]",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
               internalType: "uint256",
               name: "_dayTimestamp",
               type: "uint256",
@@ -391,6 +493,25 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_reservationTimestamp",
+              type: "uint256",
+            },
+          ],
+          name: "getStartOfDayTimestamp",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "pure",
           type: "function",
         },
         {
@@ -681,6 +802,25 @@ const deployedContracts = {
               internalType: "string",
               name: "",
               type: "string",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256[]",
+              name: "tokenIds",
+              type: "uint256[]",
+            },
+          ],
+          name: "tokenURIs",
+          outputs: [
+            {
+              internalType: "string[]",
+              name: "",
+              type: "string[]",
             },
           ],
           stateMutability: "view",

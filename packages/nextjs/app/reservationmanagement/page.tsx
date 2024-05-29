@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { getLocalTimeZone, today } from "@internationalized/date";
+import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
 import { DateRangePicker } from "@nextui-org/react";
 
 export default function ReservationManagement() {
@@ -11,6 +11,10 @@ export default function ReservationManagement() {
   const [toleranceTime, setToleranceTime] = useState("");
   const [numberOfTables, setNumberOfTables] = useState("");
   const [personsPerTable, setPersonsPerTable] = useState("");
+  const [, setReservationsRange] = useState({
+    start: today(getLocalTimeZone()),
+    end: today(getLocalTimeZone()),
+  });
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   const handleSubmit = async (event: any) => {
@@ -138,6 +142,7 @@ export default function ReservationManagement() {
               <DateRangePicker
                 label="Reservations Range"
                 labelPlacement="outside"
+                onChange={(value: { start: CalendarDate; end: CalendarDate }) => setReservationsRange(value)}
                 isRequired
                 defaultValue={{ start: today(getLocalTimeZone()), end: today(getLocalTimeZone()) }}
                 className="max-w-xs"
