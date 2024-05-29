@@ -1,18 +1,17 @@
-
-
 export type UserRegisterData = {
  name: string;
  email: string;
  password: string;
- birthday_date: number;
- phone: number;
+ birthday_date: string;
+ phone: string;
  document_type: string;
  document_number: string;
  country: string;
  city: string;
- zip_code: number;
+ zip_code: string;
  street: string;
  district: string;
+ complement: string;
 }
 
 export type ValidateWalletRequest = {

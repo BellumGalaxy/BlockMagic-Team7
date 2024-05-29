@@ -16,7 +16,7 @@ import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
 /// @title Reservation NFT's
 /// @author @YanVictorSN
 /// @notice You can use this contract to mint and set NFT's metadata for reservations.
-contract Reservation is ERC721, ERC721URIStorage, Ownable,  {
+contract Reservation is ERC721, ERC721URIStorage, Ownable  {
 	////////////////
 	///Data Types///
 	////////////////

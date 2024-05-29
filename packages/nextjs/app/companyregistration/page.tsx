@@ -1,20 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import { useFirebaseAuth } from "~~/hooks/firebase/useAuth";
 
-export default function CompanyResgistration() {
+export default function CompanyRegistration() {
+  const { createUser } = useFirebaseAuth();
+
   const [formData, setFormData] = useState({
-    phone: "",
-    address: "",
-    country: "",
-    city: "",
-    zip: "",
-    district: "",
-    complement: "",
-    companyName: "",
+    name: "",
     email: "",
     password: "",
-    username: "",
+    birthday_date: "",
+    phone: "",
+    document_type: "",
+    document_number: "",
+    country: "",
+    city: "",
+    zip_code: "",
+    street: "",
+    district: "",
+    complement: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -25,10 +30,9 @@ export default function CompanyResgistration() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form data submitted:", formData);
-    // Here you can add the logic to send the form data to the server
+    createUser(formData);
   };
 
   return (
@@ -40,8 +44,8 @@ export default function CompanyResgistration() {
             type="text"
             className="grow"
             placeholder="Company Name"
-            name="companyName"
-            value={formData.companyName}
+            name="name"
+            value={formData.name}
             onChange={handleChange}
             required
           />
@@ -87,13 +91,26 @@ export default function CompanyResgistration() {
           <input
             type="text"
             className="grow"
-            placeholder="Address"
-            name="address"
-            value={formData.address}
+            placeholder="Document Type"
+            name="document_type"
+            value={formData.document_type}
             onChange={handleChange}
             required
           />
         </label>
+        <label className="input input-bordered flex items-center gap-2">
+          <input
+            type="text"
+            className="grow"
+            placeholder="Document Number"
+            name="document_number"
+            value={formData.document_number}
+            onChange={handleChange}
+            required
+          />
+        </label>
+      </div>
+      <div className="flex gap-2 py-2">
         <label className="input input-bordered flex items-center gap-2">
           <input
             type="text"
@@ -105,8 +122,6 @@ export default function CompanyResgistration() {
             required
           />
         </label>
-      </div>
-      <div className="flex gap-2 py-2">
         <label className="input input-bordered flex items-center gap-2">
           <input
             type="text"
@@ -118,13 +133,26 @@ export default function CompanyResgistration() {
             required
           />
         </label>
+      </div>
+      <div className="flex gap-2 py-2">
         <label className="input input-bordered flex items-center gap-2">
           <input
             type="text"
             className="grow"
             placeholder="Zip Code"
-            name="zip"
-            value={formData.zip}
+            name="zip_code"
+            value={formData.zip_code}
+            onChange={handleChange}
+            required
+          />
+        </label>
+        <label className="input input-bordered flex items-center gap-2">
+          <input
+            type="text"
+            className="grow"
+            placeholder="Street"
+            name="street"
+            value={formData.street}
             onChange={handleChange}
             required
           />

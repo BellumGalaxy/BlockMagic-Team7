@@ -9,7 +9,7 @@
 
 import { onRequest } from "firebase-functions/v2/https";
 import { FieldValue } from "@google-cloud/firestore";
-import { UserRegisterData, ValidateWalletRequest, ReserveDataRequest } from "./types";
+import { UserRegisterData, ValidateWalletRequest, ReserveDataRequest } from "../../../types/index";
 import * as logger from "firebase-functions/logger";
 import { db, auth } from "./database";
 
@@ -40,6 +40,7 @@ export const registerUser = onRequest(async (request, response) => {
    zip_code: userData.zip_code,
    street: userData.street,
    district: userData.district,
+   complement: userData.complement,
    created_at: FieldValue.serverTimestamp()
   });
 
@@ -52,6 +53,23 @@ export const registerUser = onRequest(async (request, response) => {
    return;
   }
   response.send("Error on add user").status(500);
+ }
+
+});
+
+export const getAllUsers = onRequest(async (request, response) => {
+ 
+ try {
+  const users = await db.collection("users").get();
+  const data = users.docs.map(doc => {
+   const id = doc.id;
+   const data = doc.data();
+   return { id, data };
+  });
+  response.send(data).status(200);
+ } catch (e) {
+  logger.error(e);
+  response.send("Error on get users").status(500);
  }
 
 });
@@ -233,4 +251,4 @@ export const mintToken = onRequest(async (request, response) => {
   response.send("Error on create token").status(500);
  }
 
-}
+});
