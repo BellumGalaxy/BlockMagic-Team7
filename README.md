@@ -9,9 +9,9 @@
 
 ### Summary
 1. Introduction
-   1. bla bla
+   1. O Link a Table é uma solução que otimiza o sistema de reservas em restaurantes, utilizando NFTs e tecnologia blockchain para lidar com no-shows e cancelamentos de última hora, garantindo compensação financeira aos estabelecimentos.
 2. Seu projeto
-   1. bla bla
+   1. O Link a Table permite que os usuários façam reservas temporárias pagando antecipadamente. Se comparecerem, recebem o valor de volta, caso não compareçam o restaurante retém a quantia. Dessa forma, evita o total prejuízo pelas mesas canceladas de ultima hora.
 3. Ferramentas usadas
    1. bla bla
 4. Chainlink Tools
