@@ -4,7 +4,6 @@ import React, { useCallback, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bars3Icon, BugAntIcon } from "@heroicons/react/24/outline";
 import { LoginComponent } from "~~/components/Login";
 import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { useOutsideClick } from "~~/hooks/scaffold-eth";
@@ -24,7 +23,18 @@ export const menuLinks: HeaderMenuLink[] = [
   {
     label: "Debug Contracts",
     href: "/debug",
-    icon: <BugAntIcon className="h-4 w-4" />,
+  },
+  {
+    label: "Reservation Management",
+    href: "/reservationmanagement",
+  },
+  {
+    label: "Reservation Tracking",
+    href: "/reservationtracking",
+  },
+  {
+    label: "Reservation User",
+    href: "/userreservations",
   },
 ];
 
@@ -77,9 +87,7 @@ export const Header = () => {
             onClick={() => {
               setIsDrawerOpen(prevIsOpenState => !prevIsOpenState);
             }}
-          >
-            <Bars3Icon className="h-1/2" />
-          </label>
+          ></label>
           {isDrawerOpen && (
             <ul
               tabIndex={0}

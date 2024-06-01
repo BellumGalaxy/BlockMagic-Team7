@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { getLocalTimeZone, today } from "@internationalized/date";
+import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
 import { DateRangePicker } from "@nextui-org/react";
+import { useAccount } from "wagmi";
+import { EtherInput } from "~~/components/scaffold-eth";
 
 export default function ReservationManagement() {
   const [openTime, setOpenTime] = useState("");
@@ -12,22 +14,113 @@ export default function ReservationManagement() {
   const [numberOfTables, setNumberOfTables] = useState("");
   const [personsPerTable, setPersonsPerTable] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [reservationValue, setReservationValue] = useState("");
+  const [reservationRange, setReservationsRange] = useState({
+    start: today(getLocalTimeZone()),
+    end: today(getLocalTimeZone()),
+  });
+  const { address: connectedAddress } = useAccount();
 
   const handleSubmit = async (event: any) => {
     event.preventDefault();
-    setShowConfirmation(true);
+    if (!openTime || !closeTime || !reservationTime || !toleranceTime || !numberOfTables || !personsPerTable) {
+      alert("Please fill all fields");
+      return;
+    } else {
+      setShowConfirmation(true);
+    }
   };
 
   const confirmSubmit = async () => {
-    const data = {
-      openTime,
-      closeTime,
-      reservationTime,
-      toleranceTime,
-      numberOfTables,
-      personsPerTable,
+    const parseTime = (timeString: string) => {
+      const [time, period] = timeString.split(" ");
+      // eslint-disable-next-line prefer-const
+      let [hours, minutes] = time.split(":").map(Number);
+      if (period === "PM" && hours !== 12) hours += 12;
+      if (period === "AM" && hours === 12) hours = 0;
+      return { hours, minutes };
     };
-    console.log(data);
+
+    const { hours: openHour, minutes: openMinutes } = parseTime(openTime);
+    const { hours: closeHour, minutes: closeMinutes } = parseTime(closeTime);
+    const reservationHours = parseInt(reservationTime, 10);
+    const toleranceMinutes = parseInt(toleranceTime, 10);
+    const totalTables = parseInt(numberOfTables, 10);
+    const persons = parseInt(personsPerTable, 10);
+
+    console.log("Open Hour:", openHour);
+    console.log("Close Hour:", closeHour);
+    console.log("Reservation Hours:", reservationHours);
+    console.log("Tolerance Minutes:", toleranceMinutes);
+    console.log("Total Tables:", totalTables);
+
+    const totalAvailableMinutes = closeHour * 60 + closeMinutes - (openHour * 60 + openMinutes);
+    const reservationDuration = reservationHours * 60 + toleranceMinutes;
+    const totalReservationSlots = Math.floor(totalAvailableMinutes / reservationDuration);
+
+    const reservations = [];
+
+    const start = reservationRange.start;
+    const end = reservationRange.end;
+
+    const currentDate = new Date(start.year, start.month - 1, start.day);
+    const endDate = new Date(end.year, end.month - 1, end.day);
+
+    while (currentDate <= endDate) {
+      const dayReservations = [];
+      for (let table = 1; table <= totalTables; table++) {
+        for (let slot = 0; slot < totalReservationSlots; slot++) {
+          const reservationDateTime = new Date(
+            currentDate.getFullYear(),
+            currentDate.getMonth(),
+            currentDate.getDate(),
+            openHour,
+            openMinutes + slot * reservationDuration,
+          );
+          const reservationTimestamp = reservationDateTime.getTime(); // Get the timestamp in milliseconds
+          dayReservations.push({
+            date: currentDate.toDateString(),
+            timestamp: reservationTimestamp,
+            tableNumber: table,
+            persons: persons,
+          });
+        }
+      }
+      reservations.push({
+        date: currentDate.toDateString(),
+        reservations: dayReservations,
+      });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    const reservationData = {
+      walletAddress: connectedAddress,
+      opentime: openTime,
+      closetime: closeTime,
+      reservationtime: reservationTime,
+      toleranceTime: toleranceTime,
+      numberOfTables: totalTables,
+      personPerTable: persons,
+      reservationValue: reservationValue,
+      dailyReservations: reservations,
+    };
+
+    try {
+      const response = await fetch("/api/reservations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(reservationData),
+      });
+      const data = await response.json();
+      console.log("Reservation data:", data);
+    } catch (error) {
+      console.log("Error creating reservation:", error);
+    }
+
+    console.log("Reservations:", reservations);
+    setShowConfirmation(false);
   };
 
   const cancelSubmit = () => {
@@ -35,9 +128,9 @@ export default function ReservationManagement() {
   };
 
   return (
-    <div className="flex justify-center items-center h-screen">
+    <div className="flex justify-center h-screen">
       <form className="flex flex-col justify-around rounded-lg shadow-lg" onSubmit={handleSubmit}>
-        <h1 className="text-center text-xl font-bold">Reservation Management</h1>
+        <h1 className="font-PlayfairDisplay font-bold text-4xl">Reservation Management</h1>
         <div className="flex">
           <div className="flex flex-col">
             <div className="flex space-x-4">
@@ -134,6 +227,14 @@ export default function ReservationManagement() {
                 />
               </label>
             </div>
+            <div className="flex justify-center items-center">
+              <label className="form-control w-full max-w-xs">
+                <div className="label">
+                  <span className="label-text">Reservation Value</span>
+                </div>
+                <EtherInput value={reservationValue} onChange={amount => setReservationValue(amount)} />
+              </label>
+            </div>
             <div className="flex justify-center space-y-4">
               <DateRangePicker
                 label="Reservations Range"
@@ -141,6 +242,7 @@ export default function ReservationManagement() {
                 isRequired
                 defaultValue={{ start: today(getLocalTimeZone()), end: today(getLocalTimeZone()) }}
                 className="max-w-xs"
+                onChange={(value: { start: CalendarDate; end: CalendarDate }) => setReservationsRange(value)}
               />
             </div>
           </div>

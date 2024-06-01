@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { QrReader } from "react-qr-reader";
 import { useAccount } from "wagmi";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
@@ -23,6 +24,39 @@ export default function UserReservation() {
     args: [userAddress],
   });
 
+  const [data, setData] = useState("");
+  const [showCameraModal, setshowCameraModal] = useState(false); // Estado para controlar a visibilidade do QrReader
+
+  const handleQrResult = (result: any, error: any) => {
+    if (result) {
+      const text = result.text; // ou use um método público adequado, se disponível
+      setData(text);
+    }
+
+    if (error) {
+      console.info(error);
+    }
+  };
+
+  useEffect(() => {
+    console.log(data);
+  }, [data]);
+
+  const toggleCameraModal = () => {
+    setshowCameraModal(prevState => !prevState); // Alterna a visibilidade do QrReader
+  };
+
+  const qrReaderProps: any = {
+    onResult: handleQrResult,
+    constraints: {
+      facingMode: "environment",
+    },
+    style: {
+      width: "100%",
+      height: "100%", // Adicione altura para garantir que a câmera seja exibida
+    },
+  };
+
   useEffect(() => {
     if (connectedAddress) {
       setUserAddress(connectedAddress);
@@ -31,10 +65,13 @@ export default function UserReservation() {
   }, [connectedAddress]);
 
   useEffect(() => {
-    if (tokenData) {
+    if (tokenData && Array.isArray(tokenData)) {
+      // Check if tokenData is an array
       const reservationsId: bigint[] = [];
       for (let i = 0; i < tokenData.length; i++) {
-        reservationsId.push(tokenData[i].reservationId);
+        if (typeof tokenData[i] === "object" && "reservationId" in tokenData[i]) {
+          reservationsId.push(tokenData[i].reservationId);
+        }
       }
       setTokensId(reservationsId);
     }
@@ -42,11 +79,12 @@ export default function UserReservation() {
 
   useEffect(() => {
     if (tokenURI) {
-      fetchTokenURIData([...tokenURI]);
+      fetchTokenURIData(Array.isArray(tokenURI) ? tokenURI : [tokenURI].map(uri => uri.toString())); // Convert tokenURI array to string
     }
   }, [tokenURI]);
 
   const fetchTokenURIData = async (uris: string[]) => {
+    // Change the parameter type to string[]
     try {
       const fetchedData = await Promise.all(uris.map(uri => fetch(uri).then(res => res.json())));
       setTokenURIData(fetchedData);
@@ -84,6 +122,28 @@ export default function UserReservation() {
                   </div>
                 </div>
               </div>
+              <button className="btn" onClick={toggleCameraModal}>
+                Open Camera Modal
+              </button>
+
+              {/* Modal da câmera */}
+              {showCameraModal && (
+                <dialog id="camera_modal" className="modal" open>
+                  <div className="modal-box">
+                    <h3 className="font-bold text-lg">Camera Modal</h3>
+                    {/* Componente QrReader dentro do modal */}
+                    <QrReader {...qrReaderProps} style={{ width: "100%", height: "100%" }} />
+                    <div className="modal-action">
+                      <form method="dialog">
+                        {/* Botão para fechar o modal */}
+                        <button className="btn" onClick={toggleCameraModal}>
+                          Close
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </dialog>
+              )}
             </div>
           ))
         ) : (
