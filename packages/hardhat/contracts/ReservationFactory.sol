@@ -20,6 +20,7 @@ contract ReservationFactory is Ownable {
 	struct ReservationContract {
 		address companyAddress;
 		address contractAddress;
+		string companyName;
 	}
 
 	///////////////
@@ -35,7 +36,8 @@ contract ReservationFactory is Ownable {
 
 	event ReservationContractDeployed(
 		address indexed contractAddress,
-		address indexed companyAddress
+		address indexed companyAddress,
+		string companyName
 	);
 
 	event ReservationContractRevoked(
@@ -52,17 +54,22 @@ contract ReservationFactory is Ownable {
 	////////////
 
 	///@notice Creates a new Reservation contract for each company
-	function createReservationContract() public {
+	function createReservationContract(string memory _companyName) public {
 		Reservation newReservationContract = new Reservation();
 		address contractAddress = address(newReservationContract);
 
 		deployedContracts[contractAddress] = ReservationContract({
 			companyAddress: msg.sender,
-			contractAddress: contractAddress
+			contractAddress: contractAddress,
+			companyName: _companyName
 		});
 		allContracts.push(contractAddress);
 
-		emit ReservationContractDeployed(msg.sender, contractAddress);
+		emit ReservationContractDeployed(
+			msg.sender,
+			contractAddress,
+			_companyName
+		);
 	}
 
 	/// @notice Revokes a deployed reservation contract
@@ -86,6 +93,24 @@ contract ReservationFactory is Ownable {
 	///@notice Returns all contracts deployed
 	function getAllContracts() public view returns (address[] memory) {
 		return allContracts;
+	}
+
+	/// @notice Returns detailed information of all deployed contracts
+	function getAllDeployedContracts()
+		public
+		view
+		returns (ReservationContract[] memory)
+	{
+		uint256 length = allContracts.length;
+		ReservationContract[]
+			memory allDeployedContracts = new ReservationContract[](length);
+
+		for (uint256 i = 0; i < length; i++) {
+			address contractAddress = allContracts[i];
+			allDeployedContracts[i] = deployedContracts[contractAddress];
+		}
+
+		return allDeployedContracts;
 	}
 
 	/////////////

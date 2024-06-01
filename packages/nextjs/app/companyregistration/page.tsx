@@ -1,23 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAccount } from "wagmi";
+import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
 export default function CompanyResgistration() {
+  const { writeContractAsync: writeYourContractAsync } = useScaffoldWriteContract("ReservationFactory");
   const [formData, setFormData] = useState({
+    restaurantWallet: "",
+    name: "",
+    description: "",
+    email: "",
     phone: "",
     address: "",
-    country: "",
-    city: "",
     zip: "",
+    city: "",
+    country: "",
     district: "",
     complement: "",
-    companyName: "",
-    email: "",
-    password: "",
-    username: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const { address: connectedAddress } = useAccount();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (connectedAddress) {
+      setFormData({
+        ...formData,
+        restaurantWallet: connectedAddress,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectedAddress]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement> | React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
@@ -25,10 +42,31 @@ export default function CompanyResgistration() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form data submitted:", formData);
-    // Here you can add the logic to send the form data to the server
+    try {
+      console.log("formData", formData);
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+      console.log(result);
+
+      if (formData.name !== "") {
+        await writeYourContractAsync({
+          functionName: "createReservationContract",
+          args: [formData.name],
+        });
+        router.push("/reservationmanagement");
+      }
+    } catch (error) {
+      console.error("Error registering company:", error);
+    }
   };
 
   return (
@@ -40,8 +78,8 @@ export default function CompanyResgistration() {
             type="text"
             className="grow"
             placeholder="Company Name"
-            name="companyName"
-            value={formData.companyName}
+            name="name"
+            value={formData.name}
             onChange={handleChange}
             required
           />
@@ -58,18 +96,15 @@ export default function CompanyResgistration() {
           />
         </label>
       </div>
+      <textarea
+        placeholder="Description"
+        className="textarea textarea-bordered textarea-sm w-full max-w-xs"
+        name="description"
+        value={formData.description}
+        onChange={handleChange}
+        required
+      ></textarea>
       <div className="flex gap-2 py-2">
-        <label className="input input-bordered flex items-center gap-2">
-          <input
-            type="password"
-            className="grow"
-            placeholder="Password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
-        </label>
         <label className="input input-bordered flex items-center gap-2">
           <input
             type="tel"
