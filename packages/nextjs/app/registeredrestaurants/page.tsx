@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 export default function ReservationTracking() {
@@ -93,7 +94,7 @@ export default function ReservationTracking() {
           <div key={index} className="p-4 m-2 rounded shadow">
             <div className="card w-96 bg-base-100 shadow-xl">
               <figure className="pt-4">
-                <img src="/image1.png" alt="reservation" />
+                <Image src="/image1.png" alt="reservation" />
               </figure>
               <div className="card-body justify-center items-center">
                 <h2 className="font-semibold text-xl">{restaurant.apiData.name}</h2>
