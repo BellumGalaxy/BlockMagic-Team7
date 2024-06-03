@@ -45,13 +45,13 @@ If they don't show up, the restaurant keeps the amount.
 1. **Profile Configuration:** Any restaurant owner can create a profile on the Link a Table app, providing information such as location, operating hours, and reservation policies.
 2. **Reservation Configuration:** The restaurant owner can set available times and dates for reservations, as well as the required amount for the reservation.
 3. **Reservation Management:** Restaurant owners can monitor bookings made, including the ability to view confirmed reservations, check-ins, and amounts pocketed for no-shows.
-4. **Check-in and Validation:** The restaurant manager can facilitate customer check-ins via QR codes. The customer's presence is confirmed, and the reservation amount is released back to them upon check-in.
+4. **Check-in and Validation:** The restaurant manager can facilitate customer check-ins with QR codes. The customer's presence is confirmed, and the reservation amount is released back to them upon check-in.
 5. **Reports and Analysis:** The manager can easily access detailed reports on reservations, attendance rates, and no-shows to optimize reservation management.
 
 ## Technologies Used
 
 - **Blockchain:** NFTs, Chainlink, Smart Contracts (EVM)
-- **Front-end:** Next.Js, Wiem
+- **Front-end:** Next.JS, Viem
 - **Back-end:** MongoDB
 - **NFTs:** Use of NFTs to represent reservations and ensure financial commitments.
 - **ChainLink:** Chainlink Functions and ChainLink Automation
