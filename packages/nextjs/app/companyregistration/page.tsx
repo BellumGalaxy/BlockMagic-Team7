@@ -71,7 +71,7 @@ export default function CompanyResgistration() {
 
   return (
     <form className="flex flex-col justify-center items-center pt-6" onSubmit={handleSubmit}>
-      <h2 className="font-PlayfairDisplay font-bold text-4xl">Company Registration</h2>
+      <h2 className="font-PlayfairDisplay font-bold text-4xl">Restaurant Registration</h2>
       <div className="flex gap-2 py-2">
         <label className="input input-bordered flex items-center gap-2">
           <input

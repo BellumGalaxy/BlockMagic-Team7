@@ -11,11 +11,31 @@ import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { ERC721URIStorage } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
+import { FunctionsClient } from "@chainlink/contracts/src/v0.8/functions/v1_0_0/FunctionsClient.sol";
+import { FunctionsRequest } from "@chainlink/contracts/src/v0.8/functions/v1_0_0/libraries/FunctionsRequest.sol";
 
 /// @title Reservation NFT's
 /// @author @YanVictorSN
 /// @notice You can use this contract to mint and set NFT's metadata for reservations.
-contract Reservation is ERC721, ERC721URIStorage, Ownable {
+contract Reservation is ERC721, ERC721URIStorage, Ownable, FunctionsClient {
+	using FunctionsRequest for FunctionsRequest.Request;
+
+	// State variables to store the last request ID, response, and error
+	bytes32 public s_lastRequestId;
+	bytes public s_lastResponse;
+	bytes public s_lastError;
+
+	// Custom error type
+	error UnexpectedRequestID(bytes32 requestId);
+
+	// Event to log responses
+	event Response(
+		bytes32 indexed requestId,
+		string character,
+		bytes response,
+		bytes err
+	);
+
 	////////////////
 	///Data Types///
 	////////////////
@@ -52,11 +72,37 @@ contract Reservation is ERC721, ERC721URIStorage, Ownable {
 
 	Counters.Counter private tokenIdCounter;
 
+	address router = 0xb83E47C2bC239B3bf370bc41e1459A34b41238D0;
+	uint64 subscriptionId = 3000;
+	string public character;
+	uint32 gasLimit = 300000;
+
+	bytes32 donID =
+		0x66756e2d657468657265756d2d7365706f6c69612d3100000000000000000000;
+
 	string[] private IpfsImage = [
 		"https://bafybeiazphqjm6gaplxtgxptjyhk3qau2w5vg2sijwpijtq6gtmkikhzxe.ipfs.w3s.link/RestaurantReservation.json",
 		"https://bafybeiafomlk5ebetu4dqjmxz2qp2xze6xcgir3v3nd2xlz3d2hjce2xcu.ipfs.w3s.link/RestauranReservationCheckedIn.json",
 		"https://bafybeiab3idohdokghdzmjapoyee3haoylhiuaekpf6s4gvpm6dtxioanq.ipfs.w3s.link/RestaurantReservantionCanceled.json"
 	];
+
+	string source =
+		"const reservationId = args[0];"
+		"const reservationTimestamp = args[1];"
+		"const tableNumber = args[2];"
+		"const reservationDate = args[3];"
+		"const apiResponse = await Functions.makeHttpRequest({"
+		"url: `https://linkatable-yanvictorsns-projects.vercel.app/api/reservationsById?id=${reservationId}&reservationTimestamp=${reservationTimestamp}&tableNumber=${tableNumber}&reservationDate=${reservationDate}`"
+		"});"
+		"if (apiResponse.error) {"
+		"console.error(apiResponse.error);"
+		"throw new Error('Request failed');"
+		"}"
+		"const { data } = apiResponse;"
+		"console.log('API response data:', JSON.stringify(data, null, 2));"
+		"const encodedTimestamp = Functions.encodeString(data.reservationTimestamp);"
+		"const encodedTableNumber = Functions.encodeString(data.reservationTableNumber);"
+		"return encodedTimestamp";
 
 	mapping(address => ReservationData[]) private reservationToken;
 	mapping(uint256 => ReservationByDay[]) private reservationsByDay;
@@ -91,7 +137,7 @@ contract Reservation is ERC721, ERC721URIStorage, Ownable {
 	///Constructor///
 	/////////////////
 
-	constructor() ERC721("Reserve", "RSV") Ownable() {}
+	constructor() ERC721("Reserve", "RSV") Ownable() FunctionsClient(router) {}
 
 	///////////////
 	///Functions///
@@ -140,10 +186,14 @@ contract Reservation is ERC721, ERC721URIStorage, Ownable {
 		uint256 reservationTimestamp,
 		uint256 reservationToleranceTime,
 		uint256 reservationValue //string memory tokenMetadata //onlyOwner
-	) public {
+	) external payable {
 		require(
 			reservationTimestamp > block.timestamp,
 			"Reservation timestamp must be in the future"
+		);
+		require(
+			msg.value >= reservationValue,
+			"Insufficient funds to cover minting price"
 		);
 		require(
 			reservationToleranceTime > 0,
@@ -169,6 +219,52 @@ contract Reservation is ERC721, ERC721URIStorage, Ownable {
 		);
 		_safeMint(minterAddress, tokenId);
 		_setTokenURI(tokenId, IpfsImage[0]);
+	}
+
+	/**
+	 * @notice Sends an HTTP request for character information
+	 * @param args The arguments to pass to the HTTP request
+	 * @return requestId The ID of the request
+	 */
+	function sendRequest(
+		string[] calldata args
+	) external returns (bytes32 requestId) {
+		FunctionsRequest.Request memory req;
+		req.initializeRequestForInlineJavaScript(source); // Initialize the request with JS code
+		if (args.length > 0) req.setArgs(args); // Set the arguments for the request
+
+		// Send the request and store the request ID
+		s_lastRequestId = _sendRequest(
+			req.encodeCBOR(),
+			subscriptionId,
+			gasLimit,
+			donID
+		);
+
+		return s_lastRequestId;
+	}
+
+	/**
+	 * @notice Callback function for fulfilling a request
+	 * @param requestId The ID of the request to fulfill
+	 * @param response The HTTP response data
+	 * @param err Any errors from the Functions request
+	 */
+	function fulfillRequest(
+		bytes32 requestId,
+		bytes memory response,
+		bytes memory err
+	) internal override {
+		if (s_lastRequestId != requestId) {
+			revert UnexpectedRequestID(requestId); // Check if request IDs match
+		}
+		// Update the contract's state variables with the response and any errors
+		s_lastResponse = response;
+		character = string(response);
+		s_lastError = err;
+
+		// Emit an event to log the response
+		emit Response(requestId, character, s_lastResponse, s_lastError);
 	}
 
 	/// @notice This function get the metadata of a NFT

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 export default function ReservationTracking() {
@@ -46,9 +47,9 @@ export default function ReservationTracking() {
                   complement: any;
                 };
               }[] = [];
-          restaurants.forEach(restaurant => {
+          restaurants.forEach((restaurant: any) => {
             const matchingRestaurant = apiDataFormated.find(
-              (data: { restaurantWallet: string }) => data.restaurantWallet === restaurant.companyAddress,
+              (data: any) => data.restaurantWallet === restaurant.companyAddress,
             );
             if (matchingRestaurant) {
               const combinedObject = {
@@ -94,13 +95,15 @@ export default function ReservationTracking() {
           <div key={index} className="p-4 m-2 rounded shadow">
             <div className="card w-96 bg-base-100 shadow-xl">
               <figure className="pt-4">
-                <Image src="/image1.png" alt="reservation" />
+                <Image width={400} height={400} src="/image1.png" alt="reservation" />
               </figure>
               <div className="card-body justify-center items-center">
                 <h2 className="font-semibold text-xl">{restaurant.apiData.name}</h2>
                 <p>{restaurant.apiData.description}</p>
                 <div className="card-actions justify-end">
-                  <button className="btn btn-primary">See Reservations</button>
+                  <Link href="/registeredreservations">
+                    <button className="btn btn-primary">See Reservations</button>
+                  </Link>
                 </div>
               </div>
             </div>

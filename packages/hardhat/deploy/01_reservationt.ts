@@ -25,7 +25,6 @@ const depoyReservation: DeployFunction = async function (hre: HardhatRuntimeEnvi
   await deploy("Reservation", {
     from: deployer,
     // Contract constructor arguments
-    args: [],
     log: true,
     // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
     // automatically mining the contract deployment transaction. There is no effect on live networks.
@@ -37,6 +36,19 @@ const depoyReservation: DeployFunction = async function (hre: HardhatRuntimeEnvi
   const Reservation = await hre.ethers.getContract<Contract>("Reservation", deployer);
   const ReservationAddress = await Reservation.getAddress();
   console.log("👋 Initial ReservationAddress:", ReservationAddress);
+
+  await deploy("ReservationFactory", {
+    from: deployer,
+    // Contract constructor arguments
+    log: true,
+    // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
+    // automatically mining the contract deployment transaction. There is no effect on live networks.
+    autoMine: true,
+  });
+  // Get the deployed contract to interact with it after deploying.
+  const ReservationFactory = await hre.ethers.getContract<Contract>("ReservationFactory", deployer);
+  const ReservationFactoryAddress = await ReservationFactory.getAddress();
+  console.log("👋 Initial ReservationAddress:", ReservationFactoryAddress);
 
   await deploy("ReservationMarketplace", {
     from: deployer,

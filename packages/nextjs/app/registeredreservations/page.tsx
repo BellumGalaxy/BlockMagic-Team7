@@ -1,11 +1,18 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { parseEther } from "viem";
+import { useAccount } from "wagmi";
+import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
 export default function RegisteredReservations() {
   const [registeredReservations, setRegisteredReservations] = useState<any>([]);
   const [uniqueDates, setUniqueDates] = useState<any>([]);
   const [selectedDate, setSelectedDate] = useState("");
+  const { writeContractAsync: writeYourContractAsync } = useScaffoldWriteContract("Reservation");
+  const { address: connectedAddress } = useAccount();
+
+  const [dataToMint, setDataToMint] = useState<any>([]);
 
   async function getReservationsData() {
     const response = await fetch("/api/reservations", {
@@ -14,6 +21,38 @@ export default function RegisteredReservations() {
     const result = await response.json();
     return result;
   }
+
+  useEffect(() => {
+    const dataArray = [dataToMint.id, dataToMint.timestamp, dataToMint.tableNumber, dataToMint.date];
+    const stringDataArray = dataArray.map(String);
+    if (stringDataArray.length === 0) return;
+    async function fetchData() {
+      try {
+        await writeYourContractAsync({
+          functionName: "sendRequest",
+          args: [stringDataArray],
+        });
+        const weiAmount = parseEther(dataToMint.reservationValue.toString());
+        const bigIntWeiAmount = BigInt(weiAmount.toString());
+        console.log(bigIntWeiAmount, "BIG INT WEI AMOUNT");
+        await writeYourContractAsync({
+          functionName: "safeMint",
+          args: [
+            connectedAddress,
+            dataToMint.timestamp,
+            BigInt(dataToMint.toleranceTime * 1e18),
+            BigInt(dataToMint.reservationValue * 1e18),
+          ],
+          value: bigIntWeiAmount,
+        });
+      } catch (e) {
+        console.error("Error setting greeting:", e);
+      }
+    }
+
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataToMint]);
 
   useEffect(() => {
     async function fetchData() {
@@ -36,33 +75,32 @@ export default function RegisteredReservations() {
     fetchData();
   }, []);
 
-  const checkSpecificReservation = async (
-    id: string,
-    reservationDate: string,
-    reservationTimestamp: number,
-    tableNumber: number,
-    persons: number,
-  ) => {
-    try {
-      const response = await fetch(
-        `/api/reservationsById?id=${id}&reservationDate=${reservationDate}&reservationTimestamp=${reservationTimestamp}&tableNumber=${tableNumber}&persons=${persons}`,
-      );
-      console.log(response, "RESPONSE");
-      console.log(id, reservationDate, reservationTimestamp, tableNumber, persons);
-      if (!response.ok) {
-        if (response.status === 404) {
-          console.log("Specific reservation not found");
-        } else {
-          throw new Error("Network response was not ok");
-        }
-      }
-      const specificReservation = await response.json();
-      console.log("Specific reservation found:", specificReservation);
-    } catch (error) {
-      console.error("Error fetching specific reservation:", error);
-    }
-  };
-  // Handler for date change
+  // const deleteSpecificReservation = async (
+  //   reservationId: string,
+  //   reservationDate: string,
+  //   reservationTimestamp: string,
+  //   tableNumber: string,
+  // ) => {
+  //   try {
+  //     const response = await fetch(
+  //       `/api/reservationsById?id=${reservationId}&reservationTimestamp=${reservationTimestamp}&tableNumber=${tableNumber}&reservationDate=${reservationDate}`,
+  //     );
+  //     console.log(response, "RESPONSE");
+  //     console.log(reservationId, reservationDate, reservationTimestamp, tableNumber);
+  //     if (!response.ok) {
+  //       if (response.status === 404) {
+  //         console.log("Specific reservation not found");
+  //       } else {
+  //         throw new Error("Network response was not ok");
+  //       }
+  //     }
+  //     const specificReservation = await response.json();
+  //     console.log("Specific reservation found:", specificReservation);
+  //   } catch (error) {
+  //     console.error("Error fetching specific reservation:", error);
+  //   }
+  // };
+
   const handleDateChange = (e: { target: { value: React.SetStateAction<string> } }) => {
     setSelectedDate(e.target.value);
   };
@@ -110,29 +148,27 @@ export default function RegisteredReservations() {
                             <div className="">
                               <h2 className="card-title justify-center">Reservation Details:</h2>
                               <div className="">
-                                <p>Time: {new Date(res.timestamp).toUTCString()}</p>
+                                <p>Time: {new Date(parseInt(res.timestamp, 10)).toString()}</p>
                                 <p>Table Number: {res.tableNumber}</p>
                                 <p>Persons: {res.persons}</p>
                               </div>
 
                               {/* Add more reservation details */}
-                              <div className="card-actions justify-center">
-                                <button
-                                  className="btn btn-primary"
-                                  onClick={() =>
-                                    // @ts-ignore
-                                    checkSpecificReservation(
-                                      reservations._id, // Assuming reservation._id is the reservation ID
-                                      day.date,
-                                      res.timestamp,
-                                      res.tableNumber,
-                                      res.persons,
-                                    )
-                                  }
-                                >
-                                  Link a table
-                                </button>
-                              </div>
+                              <button
+                                className="btn btn-primary"
+                                onClick={() =>
+                                  setDataToMint({
+                                    id: reservations._id,
+                                    date: res.date,
+                                    tableNumber: res.tableNumber,
+                                    timestamp: res.timestamp,
+                                    toleranceTime: reservations.toleranceTime,
+                                    reservationValue: reservations.reservationValue,
+                                  })
+                                }
+                              >
+                                Link a table
+                              </button>
                             </div>
                           </div>
                         ));

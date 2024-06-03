@@ -4,65 +4,64 @@ import React, { useCallback, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LoginComponent } from "~~/components/Login";
 import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { useOutsideClick } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 
-type HeaderMenuLink = {
-  label: string;
-  href: string;
-  icon?: React.ReactNode;
-};
+// type HeaderMenuLink = {
+//   label: string;
+//   href: string;
+//   icon?: React.ReactNode;
+// };
 
-export const menuLinks: HeaderMenuLink[] = [
-  {
-    label: "Home",
-    href: "/",
-  },
-  {
-    label: "Debug Contracts",
-    href: "/debug",
-  },
-  {
-    label: "Reservation Management",
-    href: "/reservationmanagement",
-  },
-  {
-    label: "Reservation Tracking",
-    href: "/reservationtracking",
-  },
-  {
-    label: "Reservation User",
-    href: "/userreservations",
-  },
-];
+// export const menuLinks: HeaderMenuLink[] = [
+//   {
+//     label: "Home",
+//     href: "/",
+//   },
+//   {
+//     label: "Debug Contracts",
+//     href: "/debug",
+//   },
+//   {
+//     label: "Reservation Management",
+//     href: "/reservationmanagement",
+//   },
+//   {
+//     label: "Reservation Tracking",
+//     href: "/reservationtracking",
+//   },
+//   {
+//     label: "Reservation User",
+//     href: "/userreservations",
+//   },
+// ];
 
-export const HeaderMenuLinks = () => {
-  const pathname = usePathname();
+// export const HeaderMenuLinks = () => {
+//   const pathname = usePathname();
 
-  return (
-    <>
-      {menuLinks.map(({ label, href, icon }) => {
-        const isActive = pathname === href;
-        return (
-          <li key={href}>
-            <Link
-              href={href}
-              passHref
-              className={`${
-                isActive ? "bg-secondary shadow-md" : ""
-              } hover:bg-secondary hover:shadow-md focus:!bg-secondary active:!text-neutral py-1.5 px-3 text-sm rounded-full gap-2 grid grid-flow-col`}
-            >
-              {icon}
-              <span className="">{label}</span>
-            </Link>
-          </li>
-        );
-      })}
-    </>
-  );
-};
+//   return (
+//     <>
+//       {menuLinks.map(({ label, href, icon }) => {
+//         const isActive = pathname === href;
+//         return (
+//           <li key={href}>
+//             <Link
+//               href={href}
+//               passHref
+//               className={`${
+//                 isActive ? "bg-secondary shadow-md" : ""
+//               } hover:bg-secondary hover:shadow-md focus:!bg-secondary active:!text-neutral py-1.5 px-3 text-sm rounded-full gap-2 grid grid-flow-col`}
+//             >
+//               {icon}
+//               <span className="">{label}</span>
+//             </Link>
+//           </li>
+//         );
+//       })}
+//     </>
+//   );
+// };
 
 /**
  * Site header
@@ -95,9 +94,7 @@ export const Header = () => {
               onClick={() => {
                 setIsDrawerOpen(false);
               }}
-            >
-              <HeaderMenuLinks />
-            </ul>
+            ></ul>
           )}
         </div>
         <Link href="/" passHref className="hidden lg:flex items-center gap-2 ml-4 mr-6 shrink-0">
@@ -109,10 +106,7 @@ export const Header = () => {
             {/* <span className="text-xs">Ethereum dev stack</span> */}
           </div>
         </Link>
-        <ul className="hidden lg:flex lg:flex-nowrap menu menu-horizontal px-1 gap-2">
-          <LoginComponent />
-          <HeaderMenuLinks />
-        </ul>
+        <ul className="hidden lg:flex lg:flex-nowrap menu menu-horizontal px-1 gap-2"></ul>
       </div>
       <div className="navbar-end flex-grow mr-4">
         <RainbowKitCustomConnectButton />
