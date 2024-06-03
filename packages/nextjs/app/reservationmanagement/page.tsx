@@ -70,13 +70,18 @@ export default function ReservationManagement() {
       const dayReservations = [];
       for (let table = 1; table <= totalTables; table++) {
         for (let slot = 0; slot < totalReservationSlots; slot++) {
+          const slotMinutes = slot * reservationDuration;
+          const slotHours = Math.floor(slotMinutes / 60);
+          const slotRemainingMinutes = slotMinutes % 60;
+
           const reservationDateTime = new Date(
             currentDate.getFullYear(),
             currentDate.getMonth(),
             currentDate.getDate(),
-            openHour,
-            openMinutes + slot * reservationDuration,
+            openHour + slotHours,
+            openMinutes + slotRemainingMinutes,
           );
+
           const reservationTimestamp = reservationDateTime.getTime(); // Get the timestamp in milliseconds
           dayReservations.push({
             date: currentDate.toDateString(),

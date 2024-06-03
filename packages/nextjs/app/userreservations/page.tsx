@@ -25,11 +25,12 @@ export default function UserReservation() {
   });
 
   const [data, setData] = useState("");
-  const [showCameraModal, setshowCameraModal] = useState(false); // Estado para controlar a visibilidade do QrReader
+  const [showCameraModal, setshowCameraModal] = useState(false);
 
   const handleQrResult = (result: any, error: any) => {
     if (result) {
-      const text = result.text; // ou use um método público adequado, se disponível
+      const text = result.text;
+      console.log(text);
       setData(text);
     }
 
@@ -43,7 +44,7 @@ export default function UserReservation() {
   }, [data]);
 
   const toggleCameraModal = () => {
-    setshowCameraModal(prevState => !prevState); // Alterna a visibilidade do QrReader
+    setshowCameraModal(prevState => !prevState);
   };
 
   const qrReaderProps: any = {
@@ -53,7 +54,7 @@ export default function UserReservation() {
     },
     style: {
       width: "100%",
-      height: "100%", // Adicione altura para garantir que a câmera seja exibida
+      height: "100%",
     },
   };
 
@@ -66,7 +67,6 @@ export default function UserReservation() {
 
   useEffect(() => {
     if (tokenData && Array.isArray(tokenData)) {
-      // Check if tokenData is an array
       const reservationsId: bigint[] = [];
       for (let i = 0; i < tokenData.length; i++) {
         if (typeof tokenData[i] === "object" && "reservationId" in tokenData[i]) {
@@ -79,12 +79,11 @@ export default function UserReservation() {
 
   useEffect(() => {
     if (tokenURI) {
-      fetchTokenURIData(Array.isArray(tokenURI) ? tokenURI : [tokenURI].map(uri => uri.toString())); // Convert tokenURI array to string
+      fetchTokenURIData(Array.isArray(tokenURI) ? tokenURI : [tokenURI].map(uri => uri.toString()));
     }
   }, [tokenURI]);
 
   const fetchTokenURIData = async (uris: string[]) => {
-    // Change the parameter type to string[]
     try {
       const fetchedData = await Promise.all(uris.map(uri => fetch(uri).then(res => res.json())));
       setTokenURIData(fetchedData);
@@ -123,19 +122,15 @@ export default function UserReservation() {
                 </div>
               </div>
               <button className="btn" onClick={toggleCameraModal}>
-                Open Camera Modal
+                Check In
               </button>
-
-              {/* Modal da câmera */}
               {showCameraModal && (
                 <dialog id="camera_modal" className="modal" open>
                   <div className="modal-box">
-                    <h3 className="font-bold text-lg">Camera Modal</h3>
-                    {/* Componente QrReader dentro do modal */}
+                    <h3 className="font-bold text-lg">Make the Check In</h3>
                     <QrReader {...qrReaderProps} style={{ width: "100%", height: "100%" }} />
                     <div className="modal-action">
                       <form method="dialog">
-                        {/* Botão para fechar o modal */}
                         <button className="btn" onClick={toggleCameraModal}>
                           Close
                         </button>
